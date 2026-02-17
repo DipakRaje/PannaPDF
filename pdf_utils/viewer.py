@@ -54,7 +54,7 @@ class PDFViewer:
         self._page_width = 0
         self._page_height = 0
 
-        self.view_canvas.bind('<Configure>', lambda e: self._update_canvas_layout())
+        self.view_canvas.bind('<Configure>', lambda e: self._on_canvas_resize(e))
 
     def load_pdf(self, path):
         self.pdf_path = path
@@ -94,10 +94,18 @@ class PDFViewer:
         self.view_canvas.configure(scrollregion=(0, 0, total_w, total_h))
         self.view_canvas.coords(self._page_image_id, 0, 0)
 
+    def _on_canvas_resize(self, event):
+        """On resize: recalculate fit-to-width zoom and re-render so the page fills viewer width."""
+        if self.doc is not None:
+            self.show_page(self.current_page_index)
+
     def show_page(self, index):
         if not self.doc:
             return
         self.current_page_index = index
+        vw, vh = self._viewport_size()
+        page_rect = self.doc[index].rect
+        self.zoom_level = vw / page_rect.width if page_rect.width > 0 else 1.0
         pix = self.doc[index].get_pixmap(matrix=fitz.Matrix(self.zoom_level, self.zoom_level))
         img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
         self.tk_img = ImageTk.PhotoImage(img)
