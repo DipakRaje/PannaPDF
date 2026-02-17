@@ -38,10 +38,10 @@ class PDFViewer:
         self.thumb_scroll.pack(side='right', fill='y')
 
         # Viewer frame: fills all remaining space. No fixed width, no padding.
-        self.viewer_frame = Frame(parent, bg='#87CEEB')
+        self.viewer_frame = Frame(parent)
         self.viewer_frame.pack(side='left', fill='both', expand=True)
 
-        self.view_canvas = Canvas(self.viewer_frame, highlightthickness=0, bg='#87CEEB')
+        self.view_canvas = Canvas(self.viewer_frame, highlightthickness=0)
         self.v_scroll = Scrollbar(self.viewer_frame, orient='vertical', command=self.view_canvas.yview)
         self.h_scroll = Scrollbar(self.viewer_frame, orient='horizontal', command=self.view_canvas.xview)
 
