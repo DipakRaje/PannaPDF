@@ -21,8 +21,8 @@ class PDFViewer:
         """
         self.container = parent
 
-        # Thumbnail frame: fixed-width strip on the left. No padding.
-        self.thumb_frame = Frame(parent, width=150)
+        # Thumbnail frame: auto-sizes based on content (thumbnails + scrollbar). No fixed width.
+        self.thumb_frame = Frame(parent)
         self.thumb_frame.pack(side='left', fill='y')
 
         self.thumb_canvas = Canvas(self.thumb_frame)
