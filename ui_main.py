@@ -9,12 +9,13 @@ def launch_app():
     root = tk.Tk()
     root.title("JB Free PDF")
     root.geometry("1024x768")
+    root.configure(bg='#87CEEB')
 
     notebook = ttk.Notebook(root)
     notebook.pack(fill=tk.BOTH, expand=True)
 
     # Use tk.Frame so no ttk padding is applied (ttk.Frame adds padding that creates a gap).
-    view_tab_frame = tk.Frame(notebook)
+    view_tab_frame = tk.Frame(notebook, bg='#87CEEB')
     ViewTab(view_tab_frame)
     notebook.add(view_tab_frame, text="View/Edit PDF")
 

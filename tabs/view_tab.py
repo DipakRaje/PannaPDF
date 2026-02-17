@@ -34,7 +34,7 @@ class ViewTab:
         self.save_btn = tk.Button(self.toolbar, text="Save As", command=self.pdf_viewer.save_as)
         self.save_btn.pack(side=tk.LEFT)
 
-        self.body = tk.Frame(parent, highlightthickness=0)
+        self.body = tk.Frame(parent, highlightthickness=0, bg='#87CEEB')
         self.body.pack(fill=tk.BOTH, expand=True, padx=0, pady=0)
 
         self.pdf_viewer.init_viewer(self.body)
