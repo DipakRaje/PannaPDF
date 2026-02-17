@@ -21,8 +21,9 @@ class PDFViewer:
         """
         self.container = parent
 
-        # Thumbnail frame: auto-sizes based on content (thumbnails + scrollbar). No fixed width.
-        self.thumb_frame = Frame(parent)
+        # Thumbnail frame: fixed-width panel (170px) that does not expand horizontally.
+        self.thumb_frame = Frame(parent, width=170)
+        self.thumb_frame.pack_propagate(False)  # Prevent frame from resizing based on content
         self.thumb_frame.pack(side='left', fill='y')
 
         self.thumb_canvas = Canvas(self.thumb_frame)
@@ -32,6 +33,7 @@ class PDFViewer:
         self.thumb_inner.bind("<Configure>", lambda e: self.thumb_canvas.configure(scrollregion=self.thumb_canvas.bbox("all")))
         self.thumb_canvas.create_window((0, 0), window=self.thumb_inner, anchor='nw')
         self.thumb_canvas.configure(yscrollcommand=self.thumb_scroll.set)
+        # Canvas fills remaining width in frame (frame width - scrollbar width)
         self.thumb_canvas.pack(side='left', fill='both', expand=True)
         self.thumb_scroll.pack(side='right', fill='y')
 
