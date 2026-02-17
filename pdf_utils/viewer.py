@@ -2,7 +2,7 @@
 
 import fitz  # PyMuPDF
 import os
-from tkinter import Frame, Label, Scrollbar, Canvas, Button, filedialog, messagebox
+from tkinter import Frame, Scrollbar, Canvas, Button, filedialog, messagebox
 from PIL import Image, ImageTk
 
 class PDFViewer:
@@ -15,8 +15,13 @@ class PDFViewer:
         self.deleted_stack = []
 
     def init_viewer(self, parent):
+        """
+        Parent must have exactly two direct children after this call:
+        thumb_frame and viewer_frame. No spacer frames, no grid on parent.
+        """
         self.container = parent
 
+        # Thumbnail frame: fixed-width strip on the left. No padding.
         self.thumb_frame = Frame(parent, width=150)
         self.thumb_frame.pack(side='left', fill='y')
 
@@ -30,8 +35,26 @@ class PDFViewer:
         self.thumb_canvas.pack(side='left', fill='both', expand=True)
         self.thumb_scroll.pack(side='right', fill='y')
 
-        self.viewer = Label(parent)
-        self.viewer.pack(side='left', fill='both', expand=True)
+        # Viewer frame: fills all remaining space. No fixed width, no padding.
+        self.viewer_frame = Frame(parent)
+        self.viewer_frame.pack(side='left', fill='both', expand=True)
+
+        self.view_canvas = Canvas(self.viewer_frame, highlightthickness=0)
+        self.v_scroll = Scrollbar(self.viewer_frame, orient='vertical', command=self.view_canvas.yview)
+        self.h_scroll = Scrollbar(self.viewer_frame, orient='horizontal', command=self.view_canvas.xview)
+
+        self.view_canvas.configure(yscrollcommand=self.v_scroll.set, xscrollcommand=self.h_scroll.set)
+
+        self.view_canvas.pack(side='left', fill='both', expand=True)
+        self.v_scroll.pack(side='right', fill='y')
+        self.h_scroll.pack(side='bottom', fill='x')
+
+        self._page_image_id = None
+        self.tk_img = None
+        self._page_width = 0
+        self._page_height = 0
+
+        self.view_canvas.bind('<Configure>', lambda e: self._update_canvas_layout())
 
     def load_pdf(self, path):
         self.pdf_path = path
@@ -54,6 +77,23 @@ class PDFViewer:
             self.thumbs.append(btn)
         self.highlight_thumbnail(self.current_page_index)
 
+    def _viewport_size(self):
+        """Return (width, height) of the visible canvas area."""
+        w = self.view_canvas.winfo_width()
+        h = self.view_canvas.winfo_height()
+        return (max(1, w), max(1, h))
+
+    def _update_canvas_layout(self):
+        """Update scroll region and image position: page is top-left aligned (no centering)."""
+        if self._page_image_id is None or self.tk_img is None:
+            return
+        vw, vh = self._viewport_size()
+        pw, ph = self._page_width, self._page_height
+        total_w = max(pw, vw)
+        total_h = max(ph, vh)
+        self.view_canvas.configure(scrollregion=(0, 0, total_w, total_h))
+        self.view_canvas.coords(self._page_image_id, 0, 0)
+
     def show_page(self, index):
         if not self.doc:
             return
@@ -61,7 +101,18 @@ class PDFViewer:
         pix = self.doc[index].get_pixmap(matrix=fitz.Matrix(self.zoom_level, self.zoom_level))
         img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
         self.tk_img = ImageTk.PhotoImage(img)
-        self.viewer.configure(image=self.tk_img)
+        self._page_width = pix.width
+        self._page_height = pix.height
+
+        if self._page_image_id is not None:
+            self.view_canvas.delete(self._page_image_id)
+        vw, vh = self._viewport_size()
+        total_w = max(self._page_width, vw)
+        total_h = max(self._page_height, vh)
+        self.view_canvas.configure(scrollregion=(0, 0, total_w, total_h))
+        self._page_image_id = self.view_canvas.create_image(
+            0, 0, image=self.tk_img, anchor='nw'
+        )
         self.highlight_thumbnail(index)
 
     def highlight_thumbnail(self, index):
@@ -103,6 +154,7 @@ class PDFViewer:
             self.thumb_frame.pack_forget()
         else:
             self.thumb_frame.pack(side='left', fill='y')
+            self.viewer_frame.pack(side='left', fill='both', expand=True)
 
     def zoom_in(self):
         self.zoom_level *= 1.25
@@ -127,3 +179,39 @@ class PDFViewer:
     def show_previous_page(self):
         if self.current_page_index > 0:
             self.show_page(self.current_page_index - 1)
+
+    def _widget_inside(self, widget, ancestor):
+        """Return True if widget is ancestor or is inside ancestor's hierarchy."""
+        w = widget
+        while w:
+            if w == ancestor:
+                return True
+            try:
+                w = w.master
+            except AttributeError:
+                break
+        return False
+
+    def handle_wheel(self, event):
+        """
+        Handle mouse wheel over the viewer: scroll the canvas if content is scrollable.
+        Return True if the event was consumed (canvas scrolled), False so the caller can flip page.
+        """
+        if not self.doc or self._page_image_id is None:
+            return False
+        if not self._widget_inside(event.widget, self.view_canvas):
+            return False
+        try:
+            region = self.view_canvas.cget('scrollregion').split()
+        except Exception:
+            return False
+        if len(region) < 4:
+            return False
+        total_h = int(region[3]) - int(region[1])
+        viewport_h = self.view_canvas.winfo_height()
+        if total_h <= viewport_h:
+            return False
+        before = self.view_canvas.yview()[0]
+        self.view_canvas.yview_scroll(-event.delta, 'units')
+        after = self.view_canvas.yview()[0]
+        return before != after

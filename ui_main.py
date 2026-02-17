@@ -13,7 +13,8 @@ def launch_app():
     notebook = ttk.Notebook(root)
     notebook.pack(fill=tk.BOTH, expand=True)
 
-    view_tab_frame = ttk.Frame(notebook)
+    # Use tk.Frame so no ttk padding is applied (ttk.Frame adds padding that creates a gap).
+    view_tab_frame = tk.Frame(notebook)
     ViewTab(view_tab_frame)
     notebook.add(view_tab_frame, text="View/Edit PDF")
 

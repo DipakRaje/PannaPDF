@@ -34,8 +34,8 @@ class ViewTab:
         self.save_btn = tk.Button(self.toolbar, text="Save As", command=self.pdf_viewer.save_as)
         self.save_btn.pack(side=tk.LEFT)
 
-        self.body = tk.Frame(parent)
-        self.body.pack(fill=tk.BOTH, expand=True)
+        self.body = tk.Frame(parent, highlightthickness=0)
+        self.body.pack(fill=tk.BOTH, expand=True, padx=0, pady=0)
 
         self.pdf_viewer.init_viewer(self.body)
         # Keyboard & mouse bindings
@@ -63,7 +63,10 @@ class ViewTab:
     def scroll_pages(self, event):
         if event.state & 0x4:  # Ctrl is held -> zoom
             self.mouse_zoom(event)
-        elif event.delta < 0:
+            return
+        if self.pdf_viewer.handle_wheel(event):
+            return  # viewer scrolled the canvas; don't change page
+        if event.delta < 0:
             self.pdf_viewer.show_next_page()
         elif event.delta > 0:
             self.pdf_viewer.show_previous_page()
